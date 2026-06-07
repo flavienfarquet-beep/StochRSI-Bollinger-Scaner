@@ -20,7 +20,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 from data_source import fetch_history, validate_symbol
 from email_service import build_alert_email, send_email
-from indicators import detect_crossover, ma_position, moving_average, rsi, rsi_signal
+from indicators import bollinger_bands, detect_crossover, ma_position, moving_average, rsi, rsi_signal, stoch_rsi
 from push_service import is_gone, send_push
 
 ROOT_DIR = Path(__file__).parent
@@ -53,16 +53,34 @@ DEFAULT_SETTINGS = {
 
 class GlobalSettings(BaseModel):
     model_config = ConfigDict(extra="ignore")
+    # RSI
     rsi_period: int = 14
     rsi_lower: float = 30.0
     rsi_upper: float = 70.0
+    # MA
     ma_short: int = 50
     ma_long: int = 200
     ma_type: str = "sma"  # "sma" or "ema"
+    # Stochastic RSI
+    stoch_rsi_period: int = 14
+    stoch_period: int = 14
+    stoch_k_smooth: int = 3
+    stoch_d_smooth: int = 3
+    stoch_lower: float = 20.0
+    stoch_upper: float = 80.0
+    # Bollinger Bands
+    bb_period: int = 20
+    bb_std: float = 2.0
+    bb_proximity_pct: float = 1.0  # within X% of band counts as "touching"
+    # Alert toggles
     alert_rsi_low: bool = True
     alert_rsi_high: bool = True
     alert_golden_cross: bool = True
     alert_death_cross: bool = True
+    alert_stoch_low: bool = True
+    alert_stoch_high: bool = True
+    alert_bb_lower: bool = True
+    alert_bb_upper: bool = True
     alert_combo: bool = True
     notification_email: str = ""
     push_enabled: bool = False
@@ -73,17 +91,29 @@ class TickerCreate(BaseModel):
 
 
 class TickerOverride(BaseModel):
-    """Per-ticker settings; any None falls back to global."""
     rsi_period: Optional[int] = None
     rsi_lower: Optional[float] = None
     rsi_upper: Optional[float] = None
     ma_short: Optional[int] = None
     ma_long: Optional[int] = None
     ma_type: Optional[str] = None
+    stoch_rsi_period: Optional[int] = None
+    stoch_period: Optional[int] = None
+    stoch_k_smooth: Optional[int] = None
+    stoch_d_smooth: Optional[int] = None
+    stoch_lower: Optional[float] = None
+    stoch_upper: Optional[float] = None
+    bb_period: Optional[int] = None
+    bb_std: Optional[float] = None
+    bb_proximity_pct: Optional[float] = None
     alert_rsi_low: Optional[bool] = None
     alert_rsi_high: Optional[bool] = None
     alert_golden_cross: Optional[bool] = None
     alert_death_cross: Optional[bool] = None
+    alert_stoch_low: Optional[bool] = None
+    alert_stoch_high: Optional[bool] = None
+    alert_bb_lower: Optional[bool] = None
+    alert_bb_upper: Optional[bool] = None
     alert_combo: Optional[bool] = None
 
 
@@ -161,12 +191,39 @@ async def compute_ticker_state(symbol: str, overrides: TickerOverride, gs: Globa
     position = ma_position(ma_short_arr, ma_long_arr)
     rsi_last = rsi_values[-1] if rsi_values else None
     sig = rsi_signal(rsi_last, s["rsi_lower"], s["rsi_upper"])
+
+    # Stochastic RSI
+    k_arr, d_arr = stoch_rsi(
+        closes, s["stoch_rsi_period"], s["stoch_period"], s["stoch_k_smooth"], s["stoch_d_smooth"]
+    )
+    stoch_k = k_arr[-1] if k_arr else None
+    stoch_d = d_arr[-1] if d_arr else None
+    stoch_sig = None
+    if stoch_k is not None:
+        if stoch_k <= s["stoch_lower"]:
+            stoch_sig = "stoch_oversold"
+        elif stoch_k >= s["stoch_upper"]:
+            stoch_sig = "stoch_overbought"
+
+    # Bollinger Bands
+    bb_upper, bb_middle, bb_lower = bollinger_bands(closes, s["bb_period"], s["bb_std"])
+    bb_u = bb_upper[-1]
+    bb_m = bb_middle[-1]
+    bb_l = bb_lower[-1]
+    last_price = data["last_price"]
+    bb_sig = None
+    bb_pct = s["bb_proximity_pct"] / 100.0
+    if bb_l is not None and last_price <= bb_l * (1 + bb_pct):
+        bb_sig = "bb_lower"
+    elif bb_u is not None and last_price >= bb_u * (1 - bb_pct):
+        bb_sig = "bb_upper"
+
     spark = closes[-30:] if len(closes) >= 30 else closes
     return {
         "symbol": data["symbol"],
         "name": data["name"],
         "currency": data["currency"],
-        "last_price": data["last_price"],
+        "last_price": last_price,
         "prev_close": closes[-2] if len(closes) > 1 else closes[-1],
         "rsi": rsi_last,
         "rsi_signal": sig,
@@ -177,20 +234,15 @@ async def compute_ticker_state(symbol: str, overrides: TickerOverride, gs: Globa
         "ma_type": ma_type,
         "ma_position": position,
         "crossover": cross,
+        "stoch_k": stoch_k,
+        "stoch_d": stoch_d,
+        "stoch_signal": stoch_sig,
+        "bb_upper": bb_u,
+        "bb_middle": bb_m,
+        "bb_lower": bb_l,
+        "bb_signal": bb_sig,
         "spark": spark,
-        "settings": {
-            "rsi_period": s["rsi_period"],
-            "rsi_lower": s["rsi_lower"],
-            "rsi_upper": s["rsi_upper"],
-            "ma_short": s["ma_short"],
-            "ma_long": s["ma_long"],
-            "ma_type": ma_type,
-            "alert_rsi_low": s["alert_rsi_low"],
-            "alert_rsi_high": s["alert_rsi_high"],
-            "alert_golden_cross": s["alert_golden_cross"],
-            "alert_death_cross": s["alert_death_cross"],
-            "alert_combo": s.get("alert_combo", True),
-        },
+        "settings": s,
     }
 
 
@@ -224,6 +276,16 @@ async def run_scan() -> dict:
         if state["crossover"] == "death_cross" and s["alert_death_cross"]:
             per_ticker.append(Alert(symbol=symbol, type="death_cross", value=state["rsi"], price=state["last_price"]))
             cross_kind = "death_cross"
+        # Stochastic RSI
+        if state["stoch_signal"] == "stoch_oversold" and s.get("alert_stoch_low", True):
+            per_ticker.append(Alert(symbol=symbol, type="stoch_oversold", value=state.get("stoch_k"), price=state["last_price"]))
+        if state["stoch_signal"] == "stoch_overbought" and s.get("alert_stoch_high", True):
+            per_ticker.append(Alert(symbol=symbol, type="stoch_overbought", value=state.get("stoch_k"), price=state["last_price"]))
+        # Bollinger Bands
+        if state["bb_signal"] == "bb_lower" and s.get("alert_bb_lower", True):
+            per_ticker.append(Alert(symbol=symbol, type="bb_lower_touch", value=state.get("bb_lower"), price=state["last_price"]))
+        if state["bb_signal"] == "bb_upper" and s.get("alert_bb_upper", True):
+            per_ticker.append(Alert(symbol=symbol, type="bb_upper_touch", value=state.get("bb_upper"), price=state["last_price"]))
 
         # Combo detection
         if s.get("alert_combo", True) and rsi_kind and cross_kind:

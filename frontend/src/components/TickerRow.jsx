@@ -10,6 +10,10 @@ function Badge({ kind, children }) {
     overbought: "bg-[var(--signal-sell-bg)] text-[var(--signal-sell)] border-[var(--signal-sell)]/20",
     above: "bg-[var(--signal-buy-bg)] text-[var(--signal-buy)] border-[var(--signal-buy)]/20",
     below: "bg-[var(--signal-sell-bg)] text-[var(--signal-sell)] border-[var(--signal-sell)]/20",
+    stoch_oversold: "bg-[var(--signal-buy-bg)] text-[var(--signal-buy)] border-[var(--signal-buy)]/20",
+    stoch_overbought: "bg-[var(--signal-sell-bg)] text-[var(--signal-sell)] border-[var(--signal-sell)]/20",
+    bb_lower: "bg-[var(--signal-buy-bg)] text-[var(--signal-buy)] border-[var(--signal-buy)]/20",
+    bb_upper: "bg-[var(--signal-sell-bg)] text-[var(--signal-sell)] border-[var(--signal-sell)]/20",
     combo: "bg-[var(--signal-warning-bg)] text-[var(--signal-warning)] border-[var(--signal-warning)]/30",
     neutral: "bg-gray-100 text-[var(--text-secondary)] border-[var(--border)]",
   };
@@ -52,8 +56,18 @@ export default function TickerRow({ ticker, onDelete, onConfigure }) {
   const positive = change >= 0;
   const rsiBadge = ticker.rsi_signal;
   const crossBadge = ticker.crossover;
-  const position = ticker.ma_position; // "above" | "below" | "equal"
+  const position = ticker.ma_position;
   const maType = (ticker.ma_type || "sma").toUpperCase();
+  const stochSig = ticker.stoch_signal; // stoch_oversold | stoch_overbought | null
+  const bbSig = ticker.bb_signal; // bb_lower | bb_upper | null
+
+  // Outer border per user spec:
+  // - YELLOW: StochRSI oversold OR price near lower Bollinger band
+  // - GREEN: both conditions met (bullish entry signal)
+  const stochLow = stochSig === "stoch_oversold";
+  const bbLowTouch = bbSig === "bb_lower";
+  const greenOutline = stochLow && bbLowTouch;
+  const yellowOutline = !greenOutline && (stochLow || bbLowTouch);
 
   // Combo: RSI signal active AND MA position bearish/bullish matches
   const comboBullish = rsiBadge === "oversold" && (crossBadge === "golden_cross" || position === "above");
@@ -64,7 +78,11 @@ export default function TickerRow({ ticker, onDelete, onConfigure }) {
     <div
       data-testid={`ticker-row-${ticker.symbol}`}
       className={`border bg-white rounded-sm transition-colors ${
-        isCombo
+        greenOutline
+          ? "border-[var(--signal-buy)] ring-2 ring-[var(--signal-buy)]/30"
+          : yellowOutline
+          ? "border-[var(--signal-warning)] ring-2 ring-[var(--signal-warning)]/30"
+          : isCombo
           ? "border-[var(--signal-warning)]/40 ring-1 ring-[var(--signal-warning)]/20"
           : "border-[var(--border)] hover:border-[var(--border-hover)]"
       }`}
@@ -145,6 +163,37 @@ export default function TickerRow({ ticker, onDelete, onConfigure }) {
           >
             <Trash2 size={14} strokeWidth={1.5} />
           </button>
+        </div>
+      </div>
+
+      {/* Secondary row: Stoch RSI + Bollinger */}
+      <div className="grid grid-cols-12 gap-3 px-4 pb-3 border-t border-[var(--border)] pt-2">
+        <div className="col-span-12 md:col-span-4 md:col-start-4">
+          <div className="text-[10px] uppercase tracking-[0.1em] text-[var(--text-tertiary)] font-semibold">
+            Stoch RSI ({ticker.settings.stoch_rsi_period}/{ticker.settings.stoch_period}, {ticker.settings.stoch_k_smooth}/{ticker.settings.stoch_d_smooth})
+          </div>
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className="font-mono text-xs text-[var(--text-primary)]">
+              K {fmtNum(ticker.stoch_k)} / D {fmtNum(ticker.stoch_d)}
+            </span>
+            {stochSig && <Badge kind={stochSig}>{stochSig.replace("stoch_", "")}</Badge>}
+          </div>
+        </div>
+        <div className="col-span-12 md:col-span-5">
+          <div className="text-[10px] uppercase tracking-[0.1em] text-[var(--text-tertiary)] font-semibold">
+            Bollinger ({ticker.settings.bb_period}, σ={ticker.settings.bb_std})
+          </div>
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            <span className="font-mono text-xs text-[var(--text-secondary)]">
+              <span className="text-[var(--signal-sell)]">↑{fmtNum(ticker.bb_upper)}</span>
+              <span className="mx-1">·</span>
+              {fmtNum(ticker.bb_middle)}
+              <span className="mx-1">·</span>
+              <span className="text-[var(--signal-buy)]">↓{fmtNum(ticker.bb_lower)}</span>
+            </span>
+            {bbSig && <Badge kind={bbSig}>{bbSig === "bb_lower" ? "touching lower" : "touching upper"}</Badge>}
+            {greenOutline && <Badge kind="above" data-testid={`entry-signal-${ticker.symbol}`}>★ entry signal</Badge>}
+          </div>
         </div>
       </div>
     </div>

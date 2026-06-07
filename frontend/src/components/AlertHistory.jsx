@@ -19,6 +19,10 @@ const DOT_COLOR = {
   golden_cross: "#059669",
   overbought: "#DC2626",
   death_cross: "#DC2626",
+  stoch_oversold: "#059669",
+  stoch_overbought: "#DC2626",
+  bb_lower_touch: "#059669",
+  bb_upper_touch: "#DC2626",
   combo_bullish: "#D97706",
   combo_bearish: "#D97706",
 };
