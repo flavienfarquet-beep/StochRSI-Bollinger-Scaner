@@ -1,0 +1,151 @@
+{
+  "project_name": "RSI & MA Tracker",
+  "app_type": "dashboard",
+  "theme": "light",
+  "archetype": "4_swiss_high_contrast",
+  "design_philosophy": "Swiss & High-Contrast (Archetype 4). Authority, clarity, and function-first. The interface is purely functional, relying on sharp typographic hierarchy, rigid grid structures, and absolute minimalism. Color is reserved exclusively for data signals (buy/sell, crossovers) and primary actions. It uses a 'Control Room' dense grid approach to maximize data visibility without overwhelming the user.",
+  "colors": {
+    "background": "#F8F9FA",
+    "surface": "#FFFFFF",
+    "border": "#E5E7EB",
+    "border_hover": "#D1D5DB",
+    "text_primary": "#111827",
+    "text_secondary": "#6B7280",
+    "text_tertiary": "#9CA3AF",
+    "brand_primary": "#0F172A",
+    "brand_primary_hover": "#1E293B",
+    "signal_buy": "#059669",
+    "signal_buy_bg": "#D1FAE5",
+    "signal_sell": "#DC2626",
+    "signal_sell_bg": "#FEE2E2",
+    "signal_warning": "#D97706",
+    "signal_warning_bg": "#FEF3C7"
+  },
+  "typography": {
+    "font_family_headings": "IBM Plex Sans, sans-serif",
+    "font_family_body": "IBM Plex Sans, sans-serif",
+    "font_family_mono": "IBM Plex Mono, monospace",
+    "rules": {
+      "h1": "text-3xl tracking-tight font-medium text-text_primary",
+      "h2": "text-xl tracking-tight font-medium text-text_primary",
+      "h3": "text-lg font-medium text-text_primary",
+      "body": "text-sm text-text_secondary leading-relaxed",
+      "data_large": "font-mono text-2xl tracking-tighter text-text_primary",
+      "data_small": "font-mono text-xs tracking-tight text-text_secondary",
+      "labels": "text-xs font-semibold uppercase tracking-[0.1em] text-text_tertiary"
+    }
+  },
+  "spacing_and_layout": {
+    "philosophy": "Control Room Grid. Dense, organized, high utility.",
+    "grid_system": "grid-cols-1 md:grid-cols-4 lg:grid-cols-12 gap-4",
+    "container_padding": "p-4 md:p-8",
+    "widget_padding": "p-4 md:p-6",
+    "border_radius": "rounded-sm",
+    "shadows": {
+      "surface": "shadow-none",
+      "popover": "shadow-lg shadow-black/5",
+      "hover": "shadow-sm shadow-black/5"
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-brand_primary text-white hover:bg-brand_primary_hover rounded-sm px-4 py-2 text-sm font-medium transition-colors",
+      "secondary": "bg-surface border border-border text-text_primary hover:bg-gray-50 rounded-sm px-4 py-2 text-sm font-medium transition-colors",
+      "danger": "bg-signal_sell text-white hover:bg-red-700 rounded-sm px-4 py-2 text-sm font-medium transition-colors"
+    },
+    "cards": {
+      "style": "bg-surface border border-border rounded-sm overflow-hidden",
+      "header": "border-b border-border px-4 py-3 flex justify-between items-center bg-gray-50/50"
+    },
+    "badges": {
+      "base": "px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider rounded-sm border",
+      "golden_cross": "bg-signal_buy_bg text-signal_buy border-signal_buy/20",
+      "death_cross": "bg-signal_sell_bg text-signal_sell border-signal_sell/20",
+      "oversold": "bg-signal_buy_bg text-signal_buy border-signal_buy/20",
+      "overbought": "bg-signal_sell_bg text-signal_sell border-signal_sell/20",
+      "neutral": "bg-gray-100 text-text_secondary border-border"
+    },
+    "inputs": {
+      "style": "border border-border bg-surface rounded-sm px-3 py-2 text-sm text-text_primary focus:outline-none focus:ring-1 focus:ring-brand_primary focus:border-brand_primary"
+    },
+    "toggles": {
+      "style": "Shadcn Switch customized to use brand_primary when active, square edges (rounded-sm) instead of full pill shape if possible."
+    }
+  },
+  "pages": [
+    {
+      "name": "Dashboard",
+      "path": "/",
+      "layout": {
+        "header": "Sticky top bar with Logo, Global Settings Icon, and Notification config.",
+        "top_panel": "Status Bar (col-span-full): Shows 'Last Daily Scan', 'Next Run', and 'Manual Trigger' button. Minimalist, text-heavy row.",
+        "main_grid": "Bento Grid (col-span-full): List of tickers. Each ticker is a horizontal card or grid row containing: Ticker Name, Current Price, Mini Sparkline (Recharts), RSI Value + Badge, MA Short/Long Values + Cross Badge, and a 'Settings' gear per ticker.",
+        "sidebar_or_bottom": "Alert History Log (col-span-full lg:col-span-4): A feed of recent triggered alerts."
+      }
+    }
+  ],
+  "features": [
+    {
+      "id": "ticker_list",
+      "description": "Dashboard listing tracked stock tickers. Default includes 'VT' (ETF Vanguard Total World). Displays price, RSI, MA values, and signal badges.",
+      "visual_rules": "Use font-mono for all numeric data. Badges should be prominent but small (text-[10px])."
+    },
+    {
+      "id": "ticker_management",
+      "description": "Add/remove tickers to the watchlist.",
+      "visual_rules": "Simple input field in a header or distinct 'Add Asset' card. Deletion via a small trash icon on hover."
+    },
+    {
+      "id": "settings_panel",
+      "description": "Global and Per-Ticker settings for RSI (period, lower, upper) and MA (short, long).",
+      "visual_rules": "Use Shadcn Sheet or Dialog. Clean label-input pairs. Default RSI: 14, Low: 30, High: 70. Default MA: 50, 200."
+    },
+    {
+      "id": "alert_toggles",
+      "description": "Toggle alerts per condition: RSI low, RSI high, golden cross, death cross.",
+      "visual_rules": "Minimalist switches next to condition labels in the settings panel."
+    },
+    {
+      "id": "notifications",
+      "description": "Email recipient setup and Browser Push opt-in.",
+      "visual_rules": "Dedicated section in Global Settings. Input for email, button to 'Enable Push'."
+    },
+    {
+      "id": "history_log",
+      "description": "Alert history/log feed.",
+      "visual_rules": "Vertical list, timestamp in mono, event text, and colored dot indicator based on signal type."
+    },
+    {
+      "id": "scan_status",
+      "description": "Daily scan status indicator and manual trigger button.",
+      "visual_rules": "Top bar element. Text: 'Last scan: 14:00 (Success)'. Button: 'Run Scan Now'."
+    },
+    {
+      "id": "mini_chart",
+      "description": "Mini price chart per ticker.",
+      "visual_rules": "Use Recharts. Sparkline style: no axes, no grid, single line. Line color: brand_primary or green/red depending on 24h performance."
+    }
+  ],
+  "motion": {
+    "hover": "Fast and snappy. 150ms ease-out on buttons and cards (background shifts).",
+    "transitions": "opacity 0.2s ease, transform 0.2s ease",
+    "loaders": "Minimalist spinner or mono text 'Scanning...'"
+  },
+  "icons": {
+    "library": "lucide-react",
+    "style": "Stroke width 1.5, rigid and technical."
+  },
+  "testing": {
+    "rules": "All interactive and key informational elements MUST include a 'data-testid' attribute (kebab-case, role-based)."
+  },
+  "instructions_to_main_agent": [
+    "Prioritize a dense, information-rich layout using the Control Room grid strategy.",
+    "Do NOT use 'Inter' for headings. Install and use 'IBM Plex Sans' for text and 'IBM Plex Mono' for numbers.",
+    "Keep borders sharp (rounded-sm) and avoid heavy shadows. Use 1px solid borders.",
+    "Implement Recharts for the mini sparkline charts on each ticker card.",
+    "Use Shadcn UI for Dialogs/Sheets, Inputs, Switches, and Badges. Override the default Shadcn radius to 'sm'.",
+    "Build the dashboard using pure Tailwind CSS for layout.",
+    "Ensure the default ticker 'VT' is pre-loaded.",
+    "For the daily scan, implement a mock or simple manual trigger mechanism for the MVP if a cron job isn't feasible immediately, but the UI must show the last run and next run."
+  ]
+}
