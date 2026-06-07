@@ -1,9 +1,13 @@
 name: Scan Boursier Quotidien
 
 on:
-  workflow_dispatch: # <--- C'EST CETTE LIGNE QUI CRÉE LE BOUTON MANUEL
+  workflow_dispatch:
   schedule:
-    - cron: '0 22 * * 0-6'
+    - cron: '15 22 * * 0-6'
+
+# Force l'utilisation des systèmes récents exigés par GitHub
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   run-scan:
@@ -22,5 +26,4 @@ jobs:
           pip install yfinance pandas-ta requests resend
 
       - name: Lancer le calcul
-        run: python backend/main.py # Vérifiez bien que ce chemin est le bon sur votre GitHub !
-        
+        run: python backend/main.py
