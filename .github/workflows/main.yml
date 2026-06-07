@@ -1,0 +1,24 @@
+name: Scan Boursier Quotidien
+
+on:
+  schedule:
+    - cron: '40 21 * * 0-6' # S'exécute à 20h00 UTC, du lundi au vendredi
+
+jobs:
+  run-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Installer les outils boursiers
+        run: |
+          pip install yfinance pandas-ta requests resend
+
+      - name: Lancer le calcul
+        run: python backend/main.py # Remplacez par le bon chemin vers votre fichier
