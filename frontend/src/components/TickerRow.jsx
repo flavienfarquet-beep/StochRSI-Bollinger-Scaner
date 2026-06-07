@@ -82,7 +82,7 @@ export default function TickerRow({ ticker, onDelete, onConfigure }) {
         greenOutline
           ? "border-4 border-[var(--signal-buy)]"
           : yellowOutline
-          ? "border-2 border-[var(--signal-buy)]/30 bg-[var(--signal-buy-bg)]/30"
+          ? "border-2 border-emerald-300 bg-emerald-50/40"
           : "border border-[var(--border)] hover:border-[var(--border-hover)]"
       }`}
     >
@@ -102,7 +102,7 @@ export default function TickerRow({ ticker, onDelete, onConfigure }) {
               </span>
             )}
             {yellowOutline && (
-              <span data-testid={`ready-flag-${ticker.symbol}`} className="px-1.5 py-0.5 text-[10px] font-mono uppercase tracking-wider rounded-sm bg-[var(--signal-buy-bg)] text-[var(--signal-buy)] border border-[var(--signal-buy)]/30">
+              <span data-testid={`ready-flag-${ticker.symbol}`} className="px-1.5 py-0.5 text-[10px] font-mono uppercase tracking-wider rounded-sm bg-emerald-50 text-emerald-600 border border-emerald-200">
                 ready to buy
               </span>
             )}

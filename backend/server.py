@@ -347,7 +347,7 @@ async def run_scan() -> dict:
         email_sent = False
         if gs.notification_email:
             email_html = "<br/>".join(f"<code>{line}</code>" for line in details_lines)
-            email_subject = f"[RSI Tracker] {notif_title}"
+            email_subject = f"[StochRSI-Bollinger Scaner] {notif_title}"
             buy_badge_html = '<span style="display:inline-block;background:#059669;color:#fff;padding:2px 8px;font-size:10px;font-family:monospace;font-weight:bold;letter-spacing:0.1em;text-transform:uppercase;margin-left:8px;">BUY</span>' if is_buy_combo else ""
             html = f"""
 <div style="font-family:'IBM Plex Sans',Arial,sans-serif;max-width:560px;margin:0 auto;background:#F8F9FA;padding:24px;">

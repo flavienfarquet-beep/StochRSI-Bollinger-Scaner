@@ -117,9 +117,9 @@ export default function App() {
             </div>
             <div>
               <div className="text-[10px] uppercase tracking-[0.1em] text-[var(--text-tertiary)] font-semibold">
-                Signal Engine
+                Daily Scan Engine
               </div>
-              <h1 className="text-base font-medium text-[var(--text-primary)] -mt-0.5">RSI &amp; MA Tracker</h1>
+              <h1 className="text-base font-medium text-[var(--text-primary)] -mt-0.5">StochRSI-Bollinger Scaner</h1>
             </div>
           </div>
           <button
