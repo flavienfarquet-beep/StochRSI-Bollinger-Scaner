@@ -58,33 +58,33 @@ export default function TickerRow({ ticker, onDelete, onConfigure }) {
   const crossBadge = ticker.crossover;
   const position = ticker.ma_position;
   const maType = (ticker.ma_type || "sma").toUpperCase();
-  const stochSig = ticker.stoch_signal; // stoch_oversold | stoch_overbought | null
-  const bbSig = ticker.bb_signal; // bb_lower | bb_upper | null
+  const stochSig = ticker.stoch_signal;
+  const bbSig = ticker.bb_signal;
+  const s = ticker.settings || {};
 
-  // Outer border per user spec:
-  // - YELLOW: StochRSI oversold OR price near lower Bollinger band
-  // - GREEN: both conditions met (bullish entry signal)
-  const stochLow = stochSig === "stoch_oversold";
-  const bbLowTouch = bbSig === "bb_lower";
+  // Per-ticker enabled flags (hide indicators when no alert toggle is active)
+  const showRsi = s.alert_rsi_low || s.alert_rsi_high;
+  const showMA = s.alert_golden_cross || s.alert_death_cross;
+  const showStoch = s.alert_stoch_low || s.alert_stoch_high;
+  const showBB = s.alert_bb_lower || s.alert_bb_upper;
+
+  // Outer border:
+  // - GREEN (thick): Stoch oversold + Bollinger lower touch (entry signal)
+  // - YELLOW (thick): one of the two
+  const stochLow = stochSig === "stoch_oversold" && s.alert_stoch_low;
+  const bbLowTouch = bbSig === "bb_lower" && s.alert_bb_lower;
   const greenOutline = stochLow && bbLowTouch;
   const yellowOutline = !greenOutline && (stochLow || bbLowTouch);
-
-  // Combo: RSI signal active AND MA position bearish/bullish matches
-  const comboBullish = rsiBadge === "oversold" && (crossBadge === "golden_cross" || position === "above");
-  const comboBearish = rsiBadge === "overbought" && (crossBadge === "death_cross" || position === "below");
-  const isCombo = (rsiBadge && crossBadge) || comboBullish || comboBearish;
 
   return (
     <div
       data-testid={`ticker-row-${ticker.symbol}`}
       className={`border bg-white rounded-sm transition-colors ${
         greenOutline
-          ? "border-[var(--signal-buy)] ring-2 ring-[var(--signal-buy)]/30"
+          ? "border-4 border-[var(--signal-buy)] ring-2 ring-[var(--signal-buy)]/20"
           : yellowOutline
-          ? "border-[var(--signal-warning)] ring-2 ring-[var(--signal-warning)]/30"
-          : isCombo
-          ? "border-[var(--signal-warning)]/40 ring-1 ring-[var(--signal-warning)]/20"
-          : "border-[var(--border)] hover:border-[var(--border-hover)]"
+          ? "border-4 border-[var(--signal-warning)] ring-2 ring-[var(--signal-warning)]/20"
+          : "border border-[var(--border)] hover:border-[var(--border-hover)]"
       }`}
     >
       <div className="grid grid-cols-12 gap-3 items-center px-4 py-3">
@@ -97,6 +97,11 @@ export default function TickerRow({ ticker, onDelete, onConfigure }) {
             <span className="text-[10px] uppercase tracking-[0.1em] text-[var(--text-tertiary)] font-semibold">
               {ticker.currency}
             </span>
+            {greenOutline && (
+              <span data-testid={`buy-flag-${ticker.symbol}`} className="px-1.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider rounded-sm bg-[var(--signal-buy)] text-white">
+                BUY
+              </span>
+            )}
           </div>
           <div className="text-xs text-[var(--text-secondary)] truncate">{ticker.name || "—"}</div>
         </div>
@@ -116,6 +121,7 @@ export default function TickerRow({ ticker, onDelete, onConfigure }) {
         </div>
 
         {/* RSI */}
+        {showRsi && (
         <div className="col-span-6 md:col-span-2">
           <div className="text-[10px] uppercase tracking-[0.1em] text-[var(--text-tertiary)] font-semibold">
             RSI ({ticker.settings.rsi_period})
@@ -125,8 +131,10 @@ export default function TickerRow({ ticker, onDelete, onConfigure }) {
             {rsiBadge && <Badge kind={rsiBadge}>{rsiBadge}</Badge>}
           </div>
         </div>
+        )}
 
         {/* MA */}
+        {showMA && (
         <div className="col-span-6 md:col-span-2">
           <div className="text-[10px] uppercase tracking-[0.1em] text-[var(--text-tertiary)] font-semibold">
             {maType} {ticker.ma_short_period}/{ticker.ma_long_period}
@@ -141,9 +149,9 @@ export default function TickerRow({ ticker, onDelete, onConfigure }) {
               </Badge>
             )}
             {crossBadge && <Badge kind={crossBadge}>{crossBadge.replace("_", " ")}</Badge>}
-            {isCombo && <Badge kind="combo">⚡ combo</Badge>}
           </div>
         </div>
+        )}
 
         {/* Actions */}
         <div className="col-span-12 md:col-span-1 flex justify-end gap-1">
@@ -167,7 +175,9 @@ export default function TickerRow({ ticker, onDelete, onConfigure }) {
       </div>
 
       {/* Secondary row: Stoch RSI + Bollinger */}
+      {(showStoch || showBB) && (
       <div className="grid grid-cols-12 gap-3 px-4 pb-3 border-t border-[var(--border)] pt-2">
+        {showStoch && (
         <div className="col-span-12 md:col-span-4 md:col-start-4">
           <div className="text-[10px] uppercase tracking-[0.1em] text-[var(--text-tertiary)] font-semibold">
             Stoch RSI ({ticker.settings.stoch_rsi_period}/{ticker.settings.stoch_period}, {ticker.settings.stoch_k_smooth}/{ticker.settings.stoch_d_smooth})
@@ -179,6 +189,8 @@ export default function TickerRow({ ticker, onDelete, onConfigure }) {
             {stochSig && <Badge kind={stochSig}>{stochSig.replace("stoch_", "")}</Badge>}
           </div>
         </div>
+        )}
+        {showBB && (
         <div className="col-span-12 md:col-span-5">
           <div className="text-[10px] uppercase tracking-[0.1em] text-[var(--text-tertiary)] font-semibold">
             Bollinger ({ticker.settings.bb_period}, σ={ticker.settings.bb_std})
@@ -192,10 +204,16 @@ export default function TickerRow({ ticker, onDelete, onConfigure }) {
               <span className="text-[var(--signal-buy)]">↓{fmtNum(ticker.bb_lower)}</span>
             </span>
             {bbSig && <Badge kind={bbSig}>{bbSig === "bb_lower" ? "touching lower" : "touching upper"}</Badge>}
-            {greenOutline && <Badge kind="above" data-testid={`entry-signal-${ticker.symbol}`}>★ entry signal</Badge>}
+            {greenOutline && (
+              <span data-testid={`combo-badge-${ticker.symbol}`} className="px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider rounded-sm bg-[var(--signal-buy)] text-white">
+                combo
+              </span>
+            )}
           </div>
         </div>
+        )}
       </div>
+      )}
     </div>
   );
 }

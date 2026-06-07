@@ -65,13 +65,12 @@ export default function App() {
   };
 
   const handleDelete = async (symbol) => {
-    if (!window.confirm(`Remove ${symbol} from watchlist?`)) return;
     try {
       await api.deleteTicker(symbol);
       toast.success(`${symbol} removed`);
       await loadAll();
     } catch (e) {
-      toast.error("Failed to remove");
+      toast.error(e.response?.data?.detail || `Failed to remove ${symbol}`);
     }
   };
 

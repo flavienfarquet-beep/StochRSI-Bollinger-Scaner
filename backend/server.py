@@ -302,34 +302,71 @@ async def run_scan() -> dict:
 
         triggered.extend(per_ticker)
 
-    # Persist alerts, send emails AND push
+    # Persist alerts, then send ONE consolidated notification per ticker
+    by_ticker: dict[str, List[Alert]] = {}
     for alert in triggered:
-        details = {
-            "Symbol": alert.symbol,
-            "Type": alert.type.replace("_", " ").title(),
-            "Price": f"{alert.price:.2f}" if alert.price is not None else "—",
-            "RSI": f"{alert.value:.2f}" if alert.value is not None else "—",
-            "Time (UTC)": alert.triggered_at.strftime("%Y-%m-%d %H:%M"),
+        by_ticker.setdefault(alert.symbol, []).append(alert)
+
+    for symbol, group in by_ticker.items():
+        # Email + Push: one consolidated message per symbol with all signals
+        types = [a.type for a in group]
+        is_combo = len(group) > 1
+        # Friendly labels
+        label_map = {
+            "oversold": "RSI", "overbought": "RSI",
+            "golden_cross": "Golden Cross", "death_cross": "Death Cross",
+            "stoch_oversold": "Stochastic", "stoch_overbought": "Stochastic",
+            "bb_lower_touch": "Bollinger", "bb_upper_touch": "Bollinger",
         }
-        sent = False
+        signals = []
+        for tp in types:
+            lbl = label_map.get(tp, tp)
+            if lbl not in signals:
+                signals.append(lbl)
+        signals_str = " + ".join(signals)
+        title_prefix = "Combo: " if is_combo else ""
+        notif_title = f"{symbol} — {title_prefix}{signals_str}"
+
+        # Body details
+        last_alert = group[-1]
+        details_lines = []
+        for a in group:
+            if a.value is not None:
+                details_lines.append(f"{a.type}: {a.value:.2f}")
+            else:
+                details_lines.append(a.type)
+        body_text = " · ".join(details_lines)
+        if last_alert.price is not None:
+            body_text = f"@ {last_alert.price:.2f} · " + body_text
+
+        # Email
+        email_sent = False
         if gs.notification_email:
-            subject, html = build_alert_email(alert.type, alert.symbol, details)
-            sent, _msg = await asyncio.to_thread(send_email, gs.notification_email, subject, html)
-        alert.email_sent = sent
+            email_html = "<br/>".join(f"<code>{line}</code>" for line in details_lines)
+            email_subject = f"[RSI Tracker] {notif_title}"
+            html = f"""
+<div style="font-family:'IBM Plex Sans',Arial,sans-serif;max-width:560px;margin:0 auto;background:#F8F9FA;padding:24px;">
+  <div style="background:#FFFFFF;border:1px solid #E5E7EB;padding:24px;">
+    <p style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#9CA3AF;margin:0 0 8px;">RSI &amp; MA Tracker — Signal</p>
+    <h1 style="font-size:22px;margin:0 0 4px;color:#111827;font-weight:500;">{symbol}</h1>
+    <p style="margin:0 0 16px;color:#6B7280;font-size:14px;"><strong>{title_prefix}{signals_str}</strong></p>
+    <div style="font-family:monospace;font-size:13px;color:#111827;">
+      Price: {last_alert.price:.2f}<br/>
+      {email_html}
+    </div>
+  </div>
+</div>"""
+            email_sent, _msg = await asyncio.to_thread(send_email, gs.notification_email, email_subject, html)
 
-        # Push notification
-        title = f"{alert.symbol} — {alert.type.replace('_', ' ').title()}"
-        body_parts = []
-        if alert.value is not None:
-            body_parts.append(f"RSI {alert.value:.2f}")
-        if alert.price is not None:
-            body_parts.append(f"@ {alert.price:.2f}")
-        body = " · ".join(body_parts) or "Signal triggered"
-        await send_push_to_all(title, body, {"symbol": alert.symbol, "type": alert.type})
+        # Push (one consolidated)
+        await send_push_to_all(notif_title, body_text, {"symbol": symbol, "types": types})
 
-        doc = alert.model_dump()
-        doc["triggered_at"] = doc["triggered_at"].isoformat()
-        await db.alerts.insert_one(doc)
+        # Persist all alerts (with email_sent flag on consolidated)
+        for a in group:
+            a.email_sent = email_sent
+            doc = a.model_dump()
+            doc["triggered_at"] = doc["triggered_at"].isoformat()
+            await db.alerts.insert_one(doc)
 
     last_run = datetime.now(timezone.utc).isoformat()
     await db.meta.update_one(

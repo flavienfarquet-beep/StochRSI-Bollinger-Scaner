@@ -29,6 +29,26 @@ function NumInput({ value, onChange, step = 1, testid, placeholder }) {
   );
 }
 
+function SwitchRow({ label, checked, onChange, testid }) {
+  return (
+    <label className="flex items-center justify-between py-2 cursor-pointer">
+      <span className="text-sm text-[var(--text-primary)]">{label}</span>
+      <button
+        data-testid={testid}
+        type="button"
+        role="switch"
+        aria-checked={!!checked}
+        onClick={() => onChange(!checked)}
+        className={`relative inline-flex h-5 w-9 items-center rounded-sm border transition-colors ${
+          checked ? "bg-[var(--brand)] border-[var(--brand)]" : "bg-gray-100 border-[var(--border)]"
+        }`}
+      >
+        <span className={`inline-block h-3.5 w-3.5 bg-white shadow-sm transition-transform ${checked ? "translate-x-4" : "translate-x-0.5"}`} />
+      </button>
+    </label>
+  );
+}
+
 function TriToggle({ label, value, onChange, testid }) {
   // value: true | false | null (= inherit global)
   const opts = [
@@ -163,11 +183,14 @@ export default function TickerSettingsSheet({ ticker, onClose, onSaved, globalSe
 
           <section>
             <h3 className="text-sm font-medium text-[var(--text-primary)] mb-1 border-b border-[var(--border)] pb-2">Alert Conditions</h3>
-            <TriToggle testid="t-alert-rsi-low" label="RSI Low" value={overrides.alert_rsi_low ?? null} onChange={(v) => set("alert_rsi_low", v)} />
-            <TriToggle testid="t-alert-rsi-high" label="RSI High" value={overrides.alert_rsi_high ?? null} onChange={(v) => set("alert_rsi_high", v)} />
-            <TriToggle testid="t-alert-golden" label="Golden Cross" value={overrides.alert_golden_cross ?? null} onChange={(v) => set("alert_golden_cross", v)} />
-            <TriToggle testid="t-alert-death" label="Death Cross" value={overrides.alert_death_cross ?? null} onChange={(v) => set("alert_death_cross", v)} />
-            <TriToggle testid="t-alert-combo" label="⚡ Combo" value={overrides.alert_combo ?? null} onChange={(v) => set("alert_combo", v)} />
+            <SwitchRow testid="t-alert-rsi-low" label="RSI Low (oversold)" checked={(overrides.alert_rsi_low ?? g.alert_rsi_low) === true} onChange={(v) => set("alert_rsi_low", v)} />
+            <SwitchRow testid="t-alert-rsi-high" label="RSI High (overbought)" checked={(overrides.alert_rsi_high ?? g.alert_rsi_high) === true} onChange={(v) => set("alert_rsi_high", v)} />
+            <SwitchRow testid="t-alert-golden" label="Golden Cross (short crosses ABOVE long)" checked={(overrides.alert_golden_cross ?? g.alert_golden_cross) === true} onChange={(v) => set("alert_golden_cross", v)} />
+            <SwitchRow testid="t-alert-death" label="Death Cross (short crosses BELOW long)" checked={(overrides.alert_death_cross ?? g.alert_death_cross) === true} onChange={(v) => set("alert_death_cross", v)} />
+            <SwitchRow testid="t-alert-stoch-low" label="Stoch RSI Low (oversold)" checked={(overrides.alert_stoch_low ?? g.alert_stoch_low) === true} onChange={(v) => set("alert_stoch_low", v)} />
+            <SwitchRow testid="t-alert-stoch-high" label="Stoch RSI High (overbought)" checked={(overrides.alert_stoch_high ?? g.alert_stoch_high) === true} onChange={(v) => set("alert_stoch_high", v)} />
+            <SwitchRow testid="t-alert-bb-lower" label="Price touching lower Bollinger" checked={(overrides.alert_bb_lower ?? g.alert_bb_lower) === true} onChange={(v) => set("alert_bb_lower", v)} />
+            <SwitchRow testid="t-alert-bb-upper" label="Price touching upper Bollinger" checked={(overrides.alert_bb_upper ?? g.alert_bb_upper) === true} onChange={(v) => set("alert_bb_upper", v)} />
           </section>
         </div>
 

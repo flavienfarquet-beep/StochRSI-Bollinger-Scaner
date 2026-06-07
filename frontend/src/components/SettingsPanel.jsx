@@ -205,22 +205,6 @@ export default function SettingsPanel({ open, onClose, onSaved }) {
             </div>
           </section>
 
-          {/* Alerts */}
-          <section>
-            <h3 className="text-sm font-medium text-[var(--text-primary)] mb-1 border-b border-[var(--border)] pb-2">
-              Alert Conditions
-            </h3>
-            <ToggleRow testid="toggle-rsi-low" label="RSI Low (oversold)" checked={settings.alert_rsi_low} onChange={(v) => handleChange("alert_rsi_low", v)} />
-            <ToggleRow testid="toggle-rsi-high" label="RSI High (overbought)" checked={settings.alert_rsi_high} onChange={(v) => handleChange("alert_rsi_high", v)} />
-            <ToggleRow testid="toggle-golden-cross" label="Golden Cross (short MA crosses ABOVE long)" checked={settings.alert_golden_cross} onChange={(v) => handleChange("alert_golden_cross", v)} />
-            <ToggleRow testid="toggle-death-cross" label="Death Cross (short MA crosses BELOW long)" checked={settings.alert_death_cross} onChange={(v) => handleChange("alert_death_cross", v)} />
-            <ToggleRow testid="toggle-stoch-low" label="Stoch RSI Low (oversold)" checked={settings.alert_stoch_low} onChange={(v) => handleChange("alert_stoch_low", v)} />
-            <ToggleRow testid="toggle-stoch-high" label="Stoch RSI High (overbought)" checked={settings.alert_stoch_high} onChange={(v) => handleChange("alert_stoch_high", v)} />
-            <ToggleRow testid="toggle-bb-lower" label="Price touching lower Bollinger Band" checked={settings.alert_bb_lower} onChange={(v) => handleChange("alert_bb_lower", v)} />
-            <ToggleRow testid="toggle-bb-upper" label="Price touching upper Bollinger Band" checked={settings.alert_bb_upper} onChange={(v) => handleChange("alert_bb_upper", v)} />
-            <ToggleRow testid="toggle-combo" label="⚡ Combo (RSI + Cross)" checked={settings.alert_combo} onChange={(v) => handleChange("alert_combo", v)} />
-          </section>
-
           {/* Stochastic RSI */}
           <section>
             <h3 className="text-sm font-medium text-[var(--text-primary)] mb-3 border-b border-[var(--border)] pb-2">
