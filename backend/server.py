@@ -311,6 +311,9 @@ async def run_scan() -> dict:
         # Email + Push: one consolidated message per symbol with all signals
         types = [a.type for a in group]
         is_combo = len(group) > 1
+        # Check if combo bullish (stoch_oversold + bb_lower_touch)
+        types_set = set(types)
+        is_buy_combo = is_combo and "stoch_oversold" in types_set and "bb_lower_touch" in types_set
         # Friendly labels
         label_map = {
             "oversold": "RSI", "overbought": "RSI",
@@ -325,7 +328,8 @@ async def run_scan() -> dict:
                 signals.append(lbl)
         signals_str = " + ".join(signals)
         title_prefix = "Combo: " if is_combo else ""
-        notif_title = f"{symbol} — {title_prefix}{signals_str}"
+        buy_tag = " 🟢 BUY" if is_buy_combo else ""
+        notif_title = f"{symbol}{buy_tag} — {title_prefix}{signals_str}"
 
         # Body details
         last_alert = group[-1]
@@ -344,11 +348,12 @@ async def run_scan() -> dict:
         if gs.notification_email:
             email_html = "<br/>".join(f"<code>{line}</code>" for line in details_lines)
             email_subject = f"[RSI Tracker] {notif_title}"
+            buy_badge_html = '<span style="display:inline-block;background:#059669;color:#fff;padding:2px 8px;font-size:10px;font-family:monospace;font-weight:bold;letter-spacing:0.1em;text-transform:uppercase;margin-left:8px;">BUY</span>' if is_buy_combo else ""
             html = f"""
 <div style="font-family:'IBM Plex Sans',Arial,sans-serif;max-width:560px;margin:0 auto;background:#F8F9FA;padding:24px;">
   <div style="background:#FFFFFF;border:1px solid #E5E7EB;padding:24px;">
     <p style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#9CA3AF;margin:0 0 8px;">RSI &amp; MA Tracker — Signal</p>
-    <h1 style="font-size:22px;margin:0 0 4px;color:#111827;font-weight:500;">{symbol}</h1>
+    <h1 style="font-size:22px;margin:0 0 4px;color:#111827;font-weight:500;">{symbol}{buy_badge_html}</h1>
     <p style="margin:0 0 16px;color:#6B7280;font-size:14px;"><strong>{title_prefix}{signals_str}</strong></p>
     <div style="font-family:monospace;font-size:13px;color:#111827;">
       Price: {last_alert.price:.2f}<br/>

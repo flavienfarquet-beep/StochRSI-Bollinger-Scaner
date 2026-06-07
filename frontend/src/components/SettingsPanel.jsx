@@ -302,14 +302,7 @@ export default function SettingsPanel({ open, onClose, onSaved }) {
           </section>
         </div>
 
-        <div className="sticky bottom-0 bg-white border-t border-[var(--border)] px-5 py-3 flex justify-end gap-2">
-          <button
-            data-testid="cancel-settings-btn"
-            onClick={onClose}
-            className="border border-[var(--border)] hover:bg-gray-50 text-[var(--text-primary)] px-4 py-2 rounded-sm text-sm font-medium transition-colors"
-          >
-            Cancel
-          </button>
+        <div className="sticky bottom-0 bg-white border-t border-[var(--border)] px-5 py-3 flex justify-start gap-2">
           <button
             data-testid="save-settings-btn"
             onClick={save}
@@ -317,6 +310,13 @@ export default function SettingsPanel({ open, onClose, onSaved }) {
             className="bg-[var(--brand)] hover:bg-[var(--brand-hover)] text-white px-4 py-2 rounded-sm text-sm font-medium transition-colors disabled:opacity-60"
           >
             {saving ? "Saving..." : "Save"}
+          </button>
+          <button
+            data-testid="cancel-settings-btn"
+            onClick={onClose}
+            className="border border-[var(--border)] hover:bg-gray-50 text-[var(--text-primary)] px-4 py-2 rounded-sm text-sm font-medium transition-colors"
+          >
+            Cancel
           </button>
         </div>
       </div>

@@ -4,17 +4,16 @@ import Sparkline from "./Sparkline";
 
 function Badge({ kind, children }) {
   const map = {
-    golden_cross: "bg-[var(--signal-buy-bg)] text-[var(--signal-buy)] border-[var(--signal-buy)]/20",
-    death_cross: "bg-[var(--signal-sell-bg)] text-[var(--signal-sell)] border-[var(--signal-sell)]/20",
+    golden_cross: "bg-[var(--signal-sell-bg)] text-[var(--signal-sell)] border-[var(--signal-sell)]/20",
+    death_cross: "bg-[var(--signal-buy-bg)] text-[var(--signal-buy)] border-[var(--signal-buy)]/20",
     oversold: "bg-[var(--signal-buy-bg)] text-[var(--signal-buy)] border-[var(--signal-buy)]/20",
     overbought: "bg-[var(--signal-sell-bg)] text-[var(--signal-sell)] border-[var(--signal-sell)]/20",
-    above: "bg-[var(--signal-buy-bg)] text-[var(--signal-buy)] border-[var(--signal-buy)]/20",
-    below: "bg-[var(--signal-sell-bg)] text-[var(--signal-sell)] border-[var(--signal-sell)]/20",
+    above: "bg-[var(--signal-sell-bg)] text-[var(--signal-sell)] border-[var(--signal-sell)]/20",
+    below: "bg-[var(--signal-buy-bg)] text-[var(--signal-buy)] border-[var(--signal-buy)]/20",
     stoch_oversold: "bg-[var(--signal-buy-bg)] text-[var(--signal-buy)] border-[var(--signal-buy)]/20",
     stoch_overbought: "bg-[var(--signal-sell-bg)] text-[var(--signal-sell)] border-[var(--signal-sell)]/20",
     bb_lower: "bg-[var(--signal-buy-bg)] text-[var(--signal-buy)] border-[var(--signal-buy)]/20",
     bb_upper: "bg-[var(--signal-sell-bg)] text-[var(--signal-sell)] border-[var(--signal-sell)]/20",
-    combo: "bg-[var(--signal-warning-bg)] text-[var(--signal-warning)] border-[var(--signal-warning)]/30",
     neutral: "bg-gray-100 text-[var(--text-secondary)] border-[var(--border)]",
   };
   return (
@@ -79,11 +78,11 @@ export default function TickerRow({ ticker, onDelete, onConfigure }) {
   return (
     <div
       data-testid={`ticker-row-${ticker.symbol}`}
-      className={`border bg-white rounded-sm transition-colors ${
+      className={`bg-white rounded-sm transition-colors ${
         greenOutline
-          ? "border-4 border-[var(--signal-buy)] ring-2 ring-[var(--signal-buy)]/20"
+          ? "border-4 border-[var(--signal-buy)]"
           : yellowOutline
-          ? "border-4 border-[var(--signal-warning)] ring-2 ring-[var(--signal-warning)]/20"
+          ? "border-2 border-[var(--signal-buy)]/30 bg-[var(--signal-buy-bg)]/30"
           : "border border-[var(--border)] hover:border-[var(--border-hover)]"
       }`}
     >
@@ -100,6 +99,11 @@ export default function TickerRow({ ticker, onDelete, onConfigure }) {
             {greenOutline && (
               <span data-testid={`buy-flag-${ticker.symbol}`} className="px-1.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider rounded-sm bg-[var(--signal-buy)] text-white">
                 BUY
+              </span>
+            )}
+            {yellowOutline && (
+              <span data-testid={`ready-flag-${ticker.symbol}`} className="px-1.5 py-0.5 text-[10px] font-mono uppercase tracking-wider rounded-sm bg-[var(--signal-buy-bg)] text-[var(--signal-buy)] border border-[var(--signal-buy)]/30">
+                ready to buy
               </span>
             )}
           </div>
@@ -148,7 +152,11 @@ export default function TickerRow({ ticker, onDelete, onConfigure }) {
                 {position === "above" ? "↑ short > long" : position === "below" ? "↓ short < long" : "equal"}
               </Badge>
             )}
-            {crossBadge && <Badge kind={crossBadge}>{crossBadge.replace("_", " ")}</Badge>}
+            {crossBadge && (
+              <Badge kind={crossBadge}>
+                {crossBadge === "death_cross" ? "↓ death cross" : crossBadge === "golden_cross" ? "↑ golden cross" : crossBadge.replace("_", " ")}
+              </Badge>
+            )}
           </div>
         </div>
         )}
