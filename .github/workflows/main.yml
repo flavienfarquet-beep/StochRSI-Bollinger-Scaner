@@ -27,4 +27,4 @@ jobs:
           pip install numpy pandas yfinance requests resend ta 
 
       - name: Lancer le calcul
-        run: python backend/main.py
+        run: python backend/server.py
