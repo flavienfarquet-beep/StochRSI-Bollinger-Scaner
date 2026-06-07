@@ -3,6 +3,7 @@ import { Settings as SettingsIcon, LineChart } from "lucide-react";
 import { Toaster, toast } from "sonner";
 
 import { api } from "./lib/api";
+import { registerServiceWorker } from "./lib/push";
 import StatusBar from "./components/StatusBar";
 import TickerRow from "./components/TickerRow";
 import AddTickerCard from "./components/AddTickerCard";
@@ -11,13 +12,7 @@ import SettingsPanel from "./components/SettingsPanel";
 import TickerSettingsSheet from "./components/TickerSettingsSheet";
 import "./App.css";
 
-function notifyPush(alert) {
-  if (typeof Notification === "undefined") return;
-  if (Notification.permission !== "granted") return;
-  const title = `${alert.symbol} — ${alert.type.replace("_", " ").toUpperCase()}`;
-  const body = alert.value != null ? `RSI ${alert.value.toFixed(2)}` : `Price ${alert.price?.toFixed(2)}`;
-  new Notification(title, { body });
-}
+function _noop() {}
 
 export default function App() {
   const [tickers, setTickers] = useState([]);
@@ -50,6 +45,7 @@ export default function App() {
   useEffect(() => {
     (async () => {
       setLoading(true);
+      registerServiceWorker();
       await loadAll();
       setLoading(false);
     })();
@@ -85,9 +81,6 @@ export default function App() {
     try {
       await api.runScan();
       const [a, st] = await Promise.all([api.listAlerts(), api.scanStatus()]);
-      // Notify new alerts via browser push
-      const knownIds = new Set(alerts.map((x) => x.id));
-      a.filter((x) => !knownIds.has(x.id)).forEach(notifyPush);
       setAlerts(a);
       setStatus(st);
       await loadAll();
@@ -183,6 +176,7 @@ export default function App() {
         onSaved={loadAll}
       />
       <TickerSettingsSheet
+        key={configTicker?.symbol || "none"}
         ticker={configTicker}
         onClose={() => setConfigTicker(null)}
         onSaved={loadAll}

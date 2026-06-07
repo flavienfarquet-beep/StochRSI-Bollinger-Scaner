@@ -1,60 +1,51 @@
-"""SendGrid email notification service."""
+"""Resend email notification service."""
 from __future__ import annotations
 
 import logging
 import os
-from typing import Optional
+from typing import Tuple
 
-from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail
+import resend
 
 logger = logging.getLogger(__name__)
 
 
-def send_email(to: str, subject: str, html_content: str) -> tuple[bool, str]:
-    """Send a transactional email via SendGrid. Returns (success, message)."""
-    api_key = os.environ.get("SENDGRID_API_KEY", "").strip()
-    sender = os.environ.get("SENDER_EMAIL", "").strip()
+def send_email(to: str, subject: str, html_content: str) -> Tuple[bool, str]:
+    """Send a transactional email via Resend. Returns (success, message)."""
+    api_key = os.environ.get("RESEND_API_KEY", "").strip()
+    sender = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev").strip()
 
     if not api_key:
-        return False, "SENDGRID_API_KEY is not configured in backend/.env."
-    if not sender:
-        return False, "SENDER_EMAIL is not configured in backend/.env (must be a SendGrid-verified sender)."
+        return False, "RESEND_API_KEY is not configured in backend/.env."
     if not to:
         return False, "No recipient email configured. Set one in Settings → Notification Email."
 
-    message = Mail(
-        from_email=sender,
-        to_emails=to,
-        subject=subject,
-        html_content=html_content,
-    )
+    resend.api_key = api_key
+    params = {
+        "from": sender,
+        "to": [to],
+        "subject": subject,
+        "html": html_content,
+    }
     try:
-        sg = SendGridAPIClient(api_key)
-        response = sg.send(message)
-        if 200 <= response.status_code < 300:
-            return True, "Email sent."
-        body = response.body.decode() if isinstance(response.body, bytes) else str(response.body)
-        return False, f"SendGrid returned status {response.status_code}: {body}"
+        result = resend.Emails.send(params)
+        email_id = result.get("id") if isinstance(result, dict) else None
+        return True, f"Email sent (id={email_id})"
     except Exception as e:
-        # SendGrid often raises HTTPError with .body
-        body = getattr(e, "body", None)
-        if isinstance(body, bytes):
-            body = body.decode(errors="ignore")
-        msg = f"SendGrid error: {e}" + (f" — {body}" if body else "")
+        msg = f"Resend error: {e}"
         logger.exception(msg)
         return False, msg
 
 
-def build_alert_email(alert_type: str, symbol: str, details: dict) -> tuple[str, str]:
+def build_alert_email(alert_type: str, symbol: str, details: dict) -> Tuple[str, str]:
     """Return (subject, html_content) for an alert."""
     titles = {
         "oversold": f"[RSI Tracker] {symbol} — RSI Oversold",
         "overbought": f"[RSI Tracker] {symbol} — RSI Overbought",
         "golden_cross": f"[RSI Tracker] {symbol} — Golden Cross",
         "death_cross": f"[RSI Tracker] {symbol} — Death Cross",
-        "combo_bullish": f"[RSI Tracker] {symbol} — ⚡ Combo Bullish (RSI + Golden Cross)",
-        "combo_bearish": f"[RSI Tracker] {symbol} — ⚡ Combo Bearish (RSI + Death Cross)",
+        "combo_bullish": f"[RSI Tracker] {symbol} — Combo Bullish (RSI + Golden Cross)",
+        "combo_bearish": f"[RSI Tracker] {symbol} — Combo Bearish (RSI + Death Cross)",
     }
     subject = titles.get(alert_type, f"[RSI Tracker] {symbol} — {alert_type}")
     rows = "".join(

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { X, Send, Bell, BellOff } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "../lib/api";
+import { getCurrentSubscription, pushSupported, subscribePush, unsubscribePush } from "../lib/push";
 
 function Field({ label, children }) {
   return (
@@ -56,13 +57,12 @@ function ToggleRow({ label, checked, onChange, testid }) {
 export default function SettingsPanel({ open, onClose, onSaved }) {
   const [settings, setSettings] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [pushEnabled, setPushEnabled] = useState(() =>
-    typeof Notification !== "undefined" && Notification.permission === "granted"
-  );
+  const [pushEnabled, setPushEnabled] = useState(false);
 
   useEffect(() => {
     if (open) {
       api.getSettings().then((s) => setSettings(s));
+      getCurrentSubscription().then((sub) => setPushEnabled(!!sub));
     }
   }, [open]);
 
@@ -85,51 +85,37 @@ export default function SettingsPanel({ open, onClose, onSaved }) {
   };
 
   const enablePush = async () => {
-    if (!("Notification" in window)) {
-      toast.error("Notifications not supported in this browser");
-      return;
-    }
-    if (!window.isSecureContext) {
-      toast.error("Push requires HTTPS (secure context)");
-      return;
-    }
-    let perm = Notification.permission;
-    if (perm === "default") {
-      perm = await Notification.requestPermission();
-    }
-    if (perm === "granted") {
-      setPushEnabled(true);
-      handleChange("push_enabled", true);
-      try {
-        new Notification("RSI & MA Tracker", { body: "Push notifications enabled." });
-      } catch (e) {
-        // Some browsers block direct Notification(); fall back to toast only
-      }
-      toast.success("Push notifications enabled");
-    } else if (perm === "denied") {
-      toast.error("Permission denied. Enable notifications in your browser settings.");
-    } else {
-      toast.error("Permission not granted");
-    }
-  };
-
-  const testPush = () => {
-    if (typeof Notification === "undefined") {
-      toast.error("Notifications not supported");
-      return;
-    }
-    if (Notification.permission !== "granted") {
-      toast.error("Push not enabled. Click 'Enable push notifications' first.");
+    if (!pushSupported()) {
+      toast.error("Push not supported in this browser");
       return;
     }
     try {
-      new Notification("RSI & MA Tracker — Test", {
-        body: "This is a test push notification.",
-        tag: "test-push",
-      });
-      toast.success("Test push sent");
+      await subscribePush();
+      setPushEnabled(true);
+      handleChange("push_enabled", true);
+      toast.success("Push notifications enabled (works in background)");
     } catch (e) {
-      toast.error("Failed to display notification: " + e.message);
+      toast.error(e.message || "Failed to enable push");
+    }
+  };
+
+  const disablePush = async () => {
+    try {
+      await unsubscribePush();
+      setPushEnabled(false);
+      handleChange("push_enabled", false);
+      toast.success("Push notifications disabled");
+    } catch (e) {
+      toast.error("Failed to disable push");
+    }
+  };
+
+  const testPush = async () => {
+    try {
+      const r = await api.testPushBackend();
+      toast.success(`Push sent (${r.sent}/${r.total_subscriptions} device(s))`);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Failed to send test push");
     }
   };
 
@@ -255,15 +241,15 @@ export default function SettingsPanel({ open, onClose, onSaved }) {
             </button>
 
             <div className="mt-4">
-              <Field label="Browser Push">
+              <Field label="Browser Push (works in background)">
                 <div className="flex gap-2 flex-wrap">
                   <button
                     data-testid="enable-push-btn"
-                    onClick={enablePush}
+                    onClick={pushEnabled ? disablePush : enablePush}
                     className="inline-flex items-center gap-1.5 border border-[var(--border)] hover:bg-gray-50 text-[var(--text-primary)] px-3 py-1.5 rounded-sm text-xs transition-colors"
                   >
                     {pushEnabled ? <Bell size={12} strokeWidth={1.5} /> : <BellOff size={12} strokeWidth={1.5} />}
-                    {pushEnabled ? "Push enabled" : "Enable push notifications"}
+                    {pushEnabled ? "Disable push" : "Enable push notifications"}
                   </button>
                   {pushEnabled && (
                     <button

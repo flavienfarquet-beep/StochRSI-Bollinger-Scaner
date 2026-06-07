@@ -21,6 +21,7 @@ from starlette.middleware.cors import CORSMiddleware
 from data_source import fetch_history, validate_symbol
 from email_service import build_alert_email, send_email
 from indicators import detect_crossover, ma_position, moving_average, rsi, rsi_signal
+from push_service import is_gone, send_push
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
@@ -104,6 +105,27 @@ class Alert(BaseModel):
     price: Optional[float] = None
     triggered_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     email_sent: bool = False
+
+
+class PushSubscription(BaseModel):
+    endpoint: str
+    keys: dict
+    user_agent: Optional[str] = None
+
+
+async def send_push_to_all(title: str, body: str, data: dict | None = None) -> int:
+    """Send push to all stored subscriptions. Returns count of successful sends."""
+    sent = 0
+    subs = await db.push_subs.find({}, {"_id": 0}).to_list(1000)
+    for sub in subs:
+        sub_info = {"endpoint": sub["endpoint"], "keys": sub["keys"]}
+        ok, msg = await asyncio.to_thread(send_push, sub_info, title, body, data)
+        if ok:
+            sent += 1
+        elif is_gone(msg):
+            await db.push_subs.delete_one({"endpoint": sub["endpoint"]})
+            logger.info(f"Removed expired push subscription: {sub['endpoint'][:50]}...")
+    return sent
 
 
 # ---------- Helpers ----------
@@ -218,7 +240,7 @@ async def run_scan() -> dict:
 
         triggered.extend(per_ticker)
 
-    # Persist alerts and send emails
+    # Persist alerts, send emails AND push
     for alert in triggered:
         details = {
             "Symbol": alert.symbol,
@@ -232,6 +254,17 @@ async def run_scan() -> dict:
             subject, html = build_alert_email(alert.type, alert.symbol, details)
             sent, _msg = await asyncio.to_thread(send_email, gs.notification_email, subject, html)
         alert.email_sent = sent
+
+        # Push notification
+        title = f"{alert.symbol} — {alert.type.replace('_', ' ').title()}"
+        body_parts = []
+        if alert.value is not None:
+            body_parts.append(f"RSI {alert.value:.2f}")
+        if alert.price is not None:
+            body_parts.append(f"@ {alert.price:.2f}")
+        body = " · ".join(body_parts) or "Signal triggered"
+        await send_push_to_all(title, body, {"symbol": alert.symbol, "type": alert.type})
+
         doc = alert.model_dump()
         doc["triggered_at"] = doc["triggered_at"].isoformat()
         await db.alerts.insert_one(doc)
@@ -417,6 +450,46 @@ async def test_notification():
     if not sent:
         raise HTTPException(500, msg)
     return {"ok": True, "message": msg}
+
+
+@api.get("/push/vapid-public-key")
+async def vapid_public_key():
+    return {"key": os.environ.get("VAPID_PUBLIC_KEY", "")}
+
+
+@api.post("/push/subscribe")
+async def push_subscribe(sub: PushSubscription):
+    doc = sub.model_dump()
+    doc["created_at"] = datetime.now(timezone.utc).isoformat()
+    # Upsert on endpoint
+    await db.push_subs.update_one(
+        {"endpoint": sub.endpoint},
+        {"$set": doc},
+        upsert=True,
+    )
+    return {"ok": True}
+
+
+@api.post("/push/unsubscribe")
+async def push_unsubscribe(payload: dict):
+    endpoint = payload.get("endpoint")
+    if not endpoint:
+        raise HTTPException(400, "endpoint required")
+    result = await db.push_subs.delete_one({"endpoint": endpoint})
+    return {"deleted": result.deleted_count}
+
+
+@api.post("/push/test")
+async def push_test():
+    count = await send_push_to_all(
+        "RSI & MA Tracker — Test",
+        "This is a test push notification.",
+        {"type": "test"},
+    )
+    total = await db.push_subs.count_documents({})
+    if total == 0:
+        raise HTTPException(400, "No push subscriptions registered. Enable push notifications in Settings first.")
+    return {"sent": count, "total_subscriptions": total}
 
 
 app.include_router(api)

@@ -17,4 +17,9 @@ export const api = {
   scanStatus: () => client.get("/scan/status").then((r) => r.data),
   runScan: () => client.post("/scan/run").then((r) => r.data),
   testNotification: () => client.post("/notifications/test").then((r) => r.data),
+  getVapidKey: () => client.get("/push/vapid-public-key").then((r) => r.data),
+  subscribePush: (sub) => client.post("/push/subscribe", sub).then((r) => r.data),
+  unsubscribePush: (endpoint) =>
+    client.post("/push/unsubscribe", { endpoint }).then((r) => r.data),
+  testPushBackend: () => client.post("/push/test").then((r) => r.data),
 };

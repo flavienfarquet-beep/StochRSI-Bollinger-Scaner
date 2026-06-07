@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { X } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "../lib/api";
@@ -60,12 +60,8 @@ function TriToggle({ label, value, onChange, testid }) {
 }
 
 export default function TickerSettingsSheet({ ticker, onClose, onSaved, globalSettings }) {
-  const [overrides, setOverrides] = useState({});
+  const [overrides, setOverrides] = useState(ticker?.overrides || {});
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (ticker) setOverrides(ticker.overrides || {});
-  }, [ticker]);
 
   if (!ticker) return null;
 
