@@ -3,7 +3,7 @@ name: Scan Boursier Quotidien
 on:
   workflow_dispatch:
   schedule:
-    - cron: '30 23 * * 0-6'
+    - cron: '0 20 * * 0-6'
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -18,13 +18,13 @@ jobs:
       - name: Installer Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10' # Fixé sur la version stable 3.10
+          python-version: '3.10'
 
       - name: Installer les outils boursiers
         run: |
           pip install --upgrade pip
-          pip install numpy==1.23.5 pandas==1.5.3 yfinance requests resend
-          pip install pandas-ta --no-dependencies # Force l'installation de pandas-ta sans blocage
+          # On installe uniquement les outils stables, sans 'pandas-ta'
+          pip install numpy pandas yfinance requests resend ta 
 
       - name: Lancer le calcul
         run: python backend/main.py
