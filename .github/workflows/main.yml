@@ -23,8 +23,8 @@ jobs:
       - name: Installer les outils boursiers
         run: |
           pip install --upgrade pip
-          # On installe uniquement les outils stables, sans 'pandas-ta'
-          pip install numpy pandas yfinance requests resend ta 
+          # On installe uniquement ce que requiert votre serveur Emergent
+          pip install numpy pandas yfinance requests resend
 
       - name: Lancer le calcul
-        run: python backend/server.py
+        run: python backend/server.py  # Modifié pour cibler server.py
