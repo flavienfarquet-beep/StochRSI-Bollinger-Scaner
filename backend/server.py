@@ -29,9 +29,9 @@ load_dotenv(ROOT_DIR / ".env")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-mongo_url = os.environ["MONGO_URL"]
+mongo_url = "mongodb+srv://flavienfarquet:fk3h477e6wh3keldj3@stch-bollinger-cluster.bb46tkk.mongodb.net/?appName=Stch-bollinger-cluster"
 client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ["DB_NAME"]]
+db = client["rsi_tracker"]
 
 SCAN_HOUR = int(os.environ.get("DAILY_SCAN_HOUR_UTC", "20"))
 SCAN_MINUTE = int(os.environ.get("DAILY_SCAN_MINUTE_UTC", "0"))
