@@ -3,7 +3,7 @@ name: Scan Boursier Quotidien
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 20 * * 0-6'
+    - cron: '5 00 * * 0-6'
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
