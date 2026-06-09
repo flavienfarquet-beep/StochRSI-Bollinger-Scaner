@@ -23,8 +23,7 @@ jobs:
       - name: Installer les outils boursiers
         run: |
           pip install --upgrade pip
-          # On installe uniquement ce que requiert votre serveur Emergent
-          pip install numpy pandas yfinance requests python-dotenv fastapi motor pydantic starlette resend
-
+          pip install -r backend/requirements.txt
+          
       - name: Lancer le calcul
         run: python backend/server.py  # Modifié pour cibler server.py
