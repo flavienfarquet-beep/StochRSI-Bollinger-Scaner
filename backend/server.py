@@ -33,7 +33,7 @@ db = client["rsi_tracker"]
 
 
 import resend
-resend.api_key = re_WpHPjiec_Fk7SR4TndDgFb7w1CYfAj4b4
+resend.api_key = "re_WpHPjiec_Fk7SR4TndDgFb7w1CYfAj4b4"
 
 
 # ---------- Models ----------
