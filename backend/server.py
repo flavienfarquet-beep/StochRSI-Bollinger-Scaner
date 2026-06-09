@@ -383,6 +383,22 @@ async def run_scan() -> dict:
 
 scheduler: Optional[AsyncIOScheduler] = None
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Seed default ticker
+    if await db.tickers.count_documents({}) == 0:
+        seed = Ticker(symbol="VT", name="Vanguard Total World Stock")
+        doc = seed.model_dump()
+        doc["created_at"] = doc["created_at"].isoformat()
+        await db.tickers.insert_one(doc)
+    # Ensure global settings exist
+    await get_global_settings()
+    
+    # Exécute le scan immédiatement au démarrage sur GitHub
+    await run_scan()
+    yield
+    client.close()
+    
 
 app = FastAPI(lifespan=lifespan)
 api = APIRouter(prefix="/api")
