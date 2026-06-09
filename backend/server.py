@@ -400,6 +400,10 @@ async def lifespan(app: FastAPI):
     
     # Exécute le scan immédiatement au démarrage sur GitHub
     await run_scan()
+    
+    # Ligne de test pour l'envoi du mail
+    resend.Emails.send({"from": "onboarding@resend.dev", "to": "flavien.farquet@hotmail.com", "subject": "Test Reussi !", "html": "<p>Le serveur GitHub fonctionne !</p>"})
+    
     yield
     client.close()
     
