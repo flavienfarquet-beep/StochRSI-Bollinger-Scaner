@@ -10,8 +10,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
 
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.cron import CronTrigger
 from dotenv import load_dotenv
 from fastapi import APIRouter, FastAPI, HTTPException
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -33,8 +31,6 @@ mongo_url = "mongodb+srv://flavienfarquet:fk3h477e6wh3keldj3@stch-bollinger-clus
 client = AsyncIOMotorClient(mongo_url)
 db = client["rsi_tracker"]
 
-SCAN_HOUR = int(os.environ.get("DAILY_SCAN_HOUR_UTC", "20"))
-SCAN_MINUTE = int(os.environ.get("DAILY_SCAN_MINUTE_UTC", "0"))
 
 # ---------- Models ----------
 
@@ -386,33 +382,6 @@ async def run_scan() -> dict:
 # ---------- App + Scheduler ----------
 
 scheduler: Optional[AsyncIOScheduler] = None
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    global scheduler
-    # Seed default ticker
-    if await db.tickers.count_documents({}) == 0:
-        seed = Ticker(symbol="VT", name="Vanguard Total World Stock ETF")
-        doc = seed.model_dump()
-        doc["created_at"] = doc["created_at"].isoformat()
-        await db.tickers.insert_one(doc)
-    # Ensure global settings exist
-    await get_global_settings()
-
-    scheduler = AsyncIOScheduler(timezone="UTC")
-    scheduler.add_job(
-        run_scan,
-        trigger=CronTrigger(hour=SCAN_HOUR, minute=SCAN_MINUTE, timezone="UTC"),
-        id="daily_scan",
-        replace_existing=True,
-    )
-    scheduler.start()
-    logger.info(f"Scheduler started — daily scan at {SCAN_HOUR:02d}:{SCAN_MINUTE:02d} UTC")
-    yield
-    if scheduler:
-        scheduler.shutdown(wait=False)
-    client.close()
 
 
 app = FastAPI(lifespan=lifespan)
